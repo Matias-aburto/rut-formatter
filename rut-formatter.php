@@ -2,7 +2,7 @@
 /*
 Plugin Name: Formateador de RUT
 Description: Formatea y valida el RUT chileno en formularios.
-Version: 1.1
+Version: 1.2.0
 Author: <a href="https://simetry.cl" target="_blank">Simetry Code</a>
 */
 
@@ -34,17 +34,21 @@ function rut_formatter_enqueue_scripts() {
 add_action('wp_enqueue_scripts', 'rut_formatter_enqueue_scripts');
 
 // Validación del RUT en el lado del servidor
-function rut_formatter_validate_rut() {
+function rut_formatter_validate_rut($order_id) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['woocommerce_checkout_place_order'])) {
         $billing_rut = sanitize_text_field($_POST[get_option('billing_rut_field_name', 'billing_rut')]);
 
         if (!rut_formatter_validate_rut_format($billing_rut)) {
-            // RUT no válido, muestra un mensaje de error o realiza la acción correspondiente.
+            // RUT no válido, muestra un mensaje de error.
             wc_add_notice("El RUT ingresado no es válido.", 'error');
+        } else {
+            // Si el RUT es válido, formateamos y guardamos el RUT formateado en el detalle del pedido
+            $formatted_rut = rut_formatter_format_rut_for_db($billing_rut);
+            update_post_meta($order_id, get_option('billing_rut_field_name', 'billing_rut'), $formatted_rut);
         }
     }
 }
-add_action('woocommerce_review_order_before_payment', 'rut_formatter_validate_rut');
+add_action('woocommerce_checkout_update_order_meta', 'rut_formatter_validate_rut', 10, 2);
 
 // Validación del formato del RUT
 function rut_formatter_validate_rut_format($rut) {
@@ -78,5 +82,15 @@ function rut_formatter_calculate_verifier_digit($rutDigits) {
     $verifier = 11 - $remainder;
 
     return ($verifier == 10) ? 'k' : strval($verifier);
+}
+
+// Esta función toma un RUT y lo formatea al estilo 19.708.578-9
+function rut_formatter_format_rut_for_db($rut) {
+    $rutBody = substr($rut, 0, -1);
+    $rutVerifier = substr($rut, -1);
+
+    $formattedRutBody = number_format(intval($rutBody), 0, '', '.');
+
+    return $formattedRutBody . '-' . $rutVerifier;
 }
 ?>
