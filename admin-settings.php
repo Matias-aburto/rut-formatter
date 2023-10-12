@@ -18,6 +18,7 @@ function rut_formatter_settings_content() {
     ?>
     <div class="wrap">
         <h2>Ajustes del Formateador de RUT</h2>
+
         <form method="post" action="options.php">
             <?php
             settings_fields('rut-formatter-settings-group');
@@ -28,6 +29,7 @@ function rut_formatter_settings_content() {
     </div>
     <?php
 }
+
 
 // Registra la configuración
 
